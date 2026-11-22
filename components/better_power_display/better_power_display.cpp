@@ -716,7 +716,9 @@ void PowerTile::paint() {
     ui::set_color(N.value, theme::INK);
     const lv_color_t col = ok ? colour_of(n) : idle;
     if (N.ring) set_border(N.ring, col);
-    set_text_color(N.icon, col);
+    // The icon stays ink: a source colour that is light (solar's orange, a device's amber) is too faint on a card in
+    // the light look. The ring, the lines and the dots carry the colour.
+    set_text_color(N.icon, ui::color(theme::INK));
   };
 
   if (node_[N_GRID].used) {
@@ -751,7 +753,6 @@ void PowerTile::paint() {
   {
     NodeUI &N = node_[N_HOME];
     node_texts(N_HOME, true, home_w_);
-    set_text_color(N.icon, swatch_color(N.swatch));
     set_arc_color(N.arc[0], swatch_color(N.swatch));
     float from = 270;
     for (int i = 0; i < 3; ++i) {

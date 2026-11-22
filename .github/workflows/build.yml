@@ -20,6 +20,10 @@ on:
       - "preview.yaml"
       - "translations/**"
   workflow_dispatch:
+    inputs:
+      boards:
+        description: "Bench boards (empty: the four default screens; e.g. cyd, guition)"
+        default: ""
 
 concurrency:
   group: build-${{ github.ref }}
@@ -53,8 +57,18 @@ jobs:
           key: bench-${{ runner.os }}-${{ github.run_id }}
           restore-keys: bench-${{ runner.os }}-
 
-      - name: Build every screen and audit what it draws
-        run: python3 tessera-plugins/tools/preview.py . --strict
+      - name: Build the screens and audit what it draws
+        env:
+          BOARDS: ${{ inputs.boards }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          args=""
+          if [ -n "$BOARDS" ]; then
+            args="--board $BOARDS"
+          elif [ "$EVENT" = "pull_request" ]; then
+            args="--board cyd"   # the quickest screen while a pull request still changes
+          fi
+          python3 tessera-plugins/tools/preview.py . --strict $args
 
       - name: Keep the pictures and the findings
         if: always()
