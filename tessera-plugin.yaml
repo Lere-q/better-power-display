@@ -1,0 +1,54 @@
+# The manifest: who made the plugin, what it may do, and what the Tessera app shows. No code and no words: every
+# name, label and hint is a key into translations/en.json, part "app". Fields: docs/MANIFEST.md of tessera-plugins.
+id: better_power_display
+version: 0.1.0
+api: "0.26"
+icon: lightning-bolt
+maintainer: Lere-q
+license: MIT
+stage: beta
+topics: [energy]
+requires:
+  esphome: 2026.6.2
+boards: any
+flash_kb: 8
+
+tiles:
+  # One tile: the live power flow of a house (grid, solar, battery, home and up to eight devices) in watts, drawn as
+  # circles joined by lines with dots that move in the direction of the flow, like power-flow-card-plus.
+  # Every source and device is a sensor of Home Assistant that reports power (W or kW); nothing is calculated from
+  # energy (Wh). Only what is configured is drawn, and the layout fits itself to the size of the tile.
+  - id: flow
+    name: tile_name
+    icon: lightning-bolt
+    sizes: { min: 2x1, max: 6x3, full: true }
+    memory: 14000
+    example: tile_example
+    options:
+      - { id: grid, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: grid, hint: grid_hint }
+      - { id: solar, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: solar, hint: solar_hint }
+      - { id: battery, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: battery, hint: battery_hint }
+      - { id: battery_level, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [battery], label: battery_level, hint: battery_level_hint }
+      - { id: home, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: home, hint: home_hint }
+      - { id: device_1, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: device_1, hint: device_hint }
+      - { id: device_2, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: device_2 }
+      - { id: device_3, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: device_3 }
+      - { id: device_4, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: device_4 }
+      - { id: device_5, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: device_5 }
+      - { id: device_6, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: device_6 }
+      - { id: device_7, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: device_7 }
+      - { id: device_8, kind: entity, domains: [sensor], attributes: [unit_of_measurement], device_class: [power], label: device_8 }
+      - { id: invert_grid, kind: toggle, default: false, label: invert_grid, hint: invert_grid_hint }
+      - { id: invert_battery, kind: toggle, default: false, label: invert_battery, hint: invert_battery_hint }
+      - { id: color_grid, kind: choice, default: blue, group: group_colors, label: color_grid, choices: &colors [
+          { value: green, label: c_green }, { value: azure, label: c_azure }, { value: blue, label: c_blue },
+          { value: purple, label: c_purple }, { value: pink, label: c_pink }, { value: red, label: c_red },
+          { value: orange, label: c_orange }, { value: amber, label: c_amber }, { value: teal, label: c_teal },
+          { value: gray, label: c_gray }, { value: white, label: c_white } ] }
+      - { id: color_solar, kind: choice, default: orange, group: group_colors, label: color_solar, choices: *colors }
+      - { id: color_battery, kind: choice, default: pink, group: group_colors, label: color_battery, choices: *colors }
+      - { id: color_home, kind: choice, default: azure, group: group_colors, label: color_home, choices: *colors }
+      - { id: device_colors, kind: choice, multiple: 8, group: group_colors, label: device_colors, hint: device_colors_hint, choices: *colors }
+      - { id: flow_min, kind: number, min: 0, max: 1000, step: 5, unit: W, default: 10, group: group_advanced, label: flow_min, hint: flow_min_hint }
+      - { id: kw_from, kind: number, min: 100, max: 100000, step: 100, unit: W, default: 1000, group: group_advanced, label: kw_from, hint: kw_from_hint }
+      - { id: show_names, kind: toggle, default: true, group: group_advanced, label: show_names }

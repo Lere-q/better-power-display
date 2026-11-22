@@ -1,0 +1,32 @@
+# Every push and pull request: the plugin passes the Tessera app's own manifest check and the rules of the plugins
+# repository (docs/TESTING.md, "1. The check"). Seconds, no build.
+name: check
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: "The plugins repository: its tools and docs"
+        uses: actions/checkout@v4
+        with:
+          repository: MaxGramser/tessera-plugins
+          path: tessera-plugins
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install pyyaml
+
+      - name: Check the plugin
+        env:
+          # The plugin API of Tessera's dev branch; main is the released core.
+          TESSERA_REF: dev
+        run: python tessera-plugins/tools/check.py .
