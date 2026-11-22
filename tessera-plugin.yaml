@@ -1,7 +1,7 @@
 # The manifest: who made the plugin, what it may do, and what the Tessera app shows. No code and no words: every
 # name, label and hint is a key into translations/en.json, part "app". Fields: docs/MANIFEST.md of tessera-plugins.
 id: better_power_display
-version: 0.1.0
+version: 0.1.1
 api: "0.26"
 icon: lightning-bolt
 maintainer: Lere-q
@@ -52,3 +52,4 @@ tiles:
       - { id: flow_min, kind: number, min: 0, max: 1000, step: 5, unit: W, default: 10, group: group_advanced, label: flow_min, hint: flow_min_hint }
       - { id: kw_from, kind: number, min: 100, max: 100000, step: 100, unit: W, default: 1000, group: group_advanced, label: kw_from, hint: kw_from_hint }
       - { id: show_names, kind: toggle, default: true, group: group_advanced, label: show_names }
+      - { id: animate, kind: toggle, default: true, group: group_advanced, label: animate, hint: animate_hint }

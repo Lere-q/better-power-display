@@ -63,6 +63,8 @@
     "c_amber": "Amber",
     "c_teal": "Teal",
     "c_gray": "Gray",
-    "c_white": "White"
+    "c_white": "White",
+    "animate": "Moving dots",
+    "animate_hint": "Dots move along the lines in the direction of the power. Turn off if the screen feels slow."
   }
 }

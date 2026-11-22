@@ -42,7 +42,7 @@ Updates are published as GitHub releases, so a new version shows up on the scree
 - A line is idle (grey, no dots) while the power is below *Flow starts at* (10 W by default).
 - The ring of the home shows where its power comes from, in the colours of grid, solar and battery.
 - With more devices chosen than the tile has room for, it shows the ones that use the most power right now.
-- The dots move four times a second.
+- The dots move four times a second; *Moving dots* under **More** turns them off if the screen feels slow.
 
 ## Privacy
 

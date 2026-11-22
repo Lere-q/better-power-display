@@ -19,7 +19,8 @@ constexpr int MAX_DEVICES = 8;
 constexpr int NODES = N_DEV0 + MAX_DEVICES;
 constexpr int MAX_PTS = 14;         // points of one line, for the dots
 constexpr int ARC_STEPS = 6;        // a corner is drawn as an arc; the dots follow it in 6 short steps
-constexpr uint32_t LOOP_MS = 2400;  // a dot runs the whole line in this time
+constexpr uint32_t LOOP_MS = 3000;  // a dot runs the whole line in this time
+constexpr int DOTS = 1;             // dots on one line
 
 // Icons of Tessera's set (Material Design Icons codepoints).
 constexpr uint32_t ICON_HOME = 0xF02DC, ICON_GRID = 0xF0D3E, ICON_SOLAR = 0xF0A72, ICON_PLUG = 0xF06A5;
@@ -192,7 +193,7 @@ class PowerTile : public tessera::Tile {
     bool used = false;
     int cx = 0, cy = 0;
     lv_obj_t *ring = nullptr;  // a circle's border (every node but the home)
-    lv_obj_t *arc[4] = {};     // the home's ring: its own colour, then the shares of grid, solar, battery
+    lv_obj_t *arc[3] = {};     // the home's ring: the shares of grid, solar, battery
     lv_obj_t *top = nullptr, *icon = nullptr, *value = nullptr, *sub = nullptr, *name = nullptr;
     bool top_on = false, sub_on = false;
     uint8_t swatch = AZURE;
@@ -203,7 +204,7 @@ class PowerTile : public tessera::Tile {
     lv_obj_t *piece[3] = {};
     bool is_arc[3] = {};
     uint8_t pieces = 0;
-    lv_obj_t *dot[2] = {};
+    lv_obj_t *dot[DOTS] = {};
     float px[MAX_PTS] = {}, py[MAX_PTS] = {}, cum[MAX_PTS] = {};
     uint8_t np = 0;
     float total = 0;
@@ -253,6 +254,13 @@ class PowerTile : public tessera::Tile {
   char dev_name_[MAX_DEVICES][28] = {};
   float home_w_ = 0;
   float share_[3] = {};  // part of the home's power that comes from grid, solar, battery
+  bool arc_on_[3] = {};
+  float arc_from_[3] = {}, arc_span_[3] = {};
+  bool animate_ = true;
+  int last_x_[NODES] = {}, last_y_[NODES] = {};
+  bool painted_ = false;
+  bool prev_ok_[NODES + 1] = {};
+  float prev_w_[NODES + 1] = {};
 };
 
 // ---------------------------------------------------------------------------------------------------
@@ -341,13 +349,7 @@ void PowerTile::make_node(int n, int cx, int cy, int d, int bw, bool with_name, 
   N.cy = cy;
   const int x = cx - d / 2, y = cy - d / 2;
 
-  if (n == N_HOME) {
-    for (int i = 0; i < 4; ++i) {
-      N.arc[i] = make_arc(parent_, d, bw);
-      lv_obj_set_pos(N.arc[i], x, y);
-    }
-    set_arc_span(N.arc[0], 270, 360);
-  } else {
+  {
     lv_obj_t *r = lv_obj_create(parent_);
     lv_obj_remove_style_all(r);
     inert(r);
@@ -358,6 +360,13 @@ void PowerTile::make_node(int n, int cx, int cy, int d, int bw, bool with_name, 
     lv_obj_set_style_border_width(r, bw, 0);
     lv_obj_set_style_border_opa(r, LV_OPA_COVER, 0);
     N.ring = r;
+  }
+  if (n == N_HOME) {  // over the ring: the part of the home's power that each source gives (hidden while one gives all)
+    for (int i = 0; i < 3; ++i) {
+      N.arc[i] = make_arc(parent_, d, bw);
+      lv_obj_set_pos(N.arc[i], x, y);
+      show(N.arc[i], false);
+    }
   }
 
   // The words inside: the largest value font the circle takes, then the icon, and the lines above and below if they fit.
@@ -429,6 +438,7 @@ void PowerTile::create(const tessera::TileContext &c) {
   flow_min_ = c.options["flow_min"] | 10.0f;
   kw_from_ = c.options["kw_from"] | 1000.0f;
   const bool want_names = c.options["show_names"] | true;
+  animate_ = c.options["animate"] | true;
 
   // Colours of the sources, then of each device: the person's pick, in order, or the next colour of the palette.
   node_[N_GRID].swatch = static_cast<uint8_t>(swatch_of(c.options["color_grid"] | "", BLUE));
@@ -481,7 +491,7 @@ void PowerTile::create(const tessera::TileContext &c) {
     g.cols = hc + std::max(1, (nd + 1) / 2);
     g.cw = W_ / g.cols;
     const int label = names ? lh(Font::BODY) : 0;
-    auto gap_of = [&](int d) { return std::max(label + 2 * pad, d * 35 / 100); };
+    auto gap_of = [&](int d) { return std::max(label + 2 * pad, d * 30 / 100); };
     auto need = [&](int d) {
       const int top = (g.top && names) ? label + pad : 0, bot = names ? label + pad : 0;
       return top + (g.rows - 1) * (d + gap_of(d)) + d + bot;
@@ -498,8 +508,8 @@ void PowerTile::create(const tessera::TileContext &c) {
   int nd = ndev_;
   for (;; --nd) {
     g = geometry(nd, want_names);
-    if (want_names && g.d < ui::mm(13)) g = geometry(nd, false);
-    if (g.d >= ui::mm(10) || nd == 0) break;
+    if (want_names && g.d < ui::mm(9)) g = geometry(nd, false);
+    if (g.d >= ui::mm(7) || nd == 0) break;
   }
   nslots_ = nd;
   D_ = g.d;
@@ -615,7 +625,7 @@ void PowerTile::create(const tessera::TileContext &c) {
   // ---- The dots, over everything ----
   for (int n = 0; n < NODES; ++n) {
     if (!link_[n].used) continue;
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < DOTS; ++i) {
       lv_obj_t *dot = make_block(parent_, 0, 0, dot_, dot_, LV_RADIUS_CIRCLE);
       show(dot, false);
       link_[n].dot[i] = dot;
@@ -656,9 +666,20 @@ void PowerTile::on_state(JsonObjectConst data) {
   for (int s = 0; s < nshown_; ++s) {
     slot_dev_[s] = order[s];
     rd_[N_DEV0 + s] = dev[order[s]];
+    if (strncmp(dev_name_[s], dev[order[s]].name, sizeof(dev_name_[s]) - 1) != 0) painted_ = false;
     strncpy(dev_name_[s], dev[order[s]].name, sizeof(dev_name_[s]) - 1);
     dev_name_[s][sizeof(dev_name_[s]) - 1] = 0;
   }
+  // Sensors report often, mostly the same number: draw again only when a shown number or a colour could change.
+  bool changed = !painted_;
+  for (int n = 0; n <= NODES; ++n) {
+    const Reading &r = n == NODES ? level_ : rd_[n];
+    if (r.ok != prev_ok_[n] || fabsf(r.w - prev_w_[n]) >= 1.0f) changed = true;
+    prev_ok_[n] = r.ok;
+    prev_w_[n] = r.w;
+  }
+  if (!changed) return;
+  painted_ = true;
   paint();
 }
 
@@ -702,10 +723,11 @@ void PowerTile::paint() {
       if (L.is_arc[i]) set_arc_color(L.piece[i], col);
       else set_bg(L.piece[i], col);
     }
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < DOTS; ++i) {
       set_bg(L.dot[i], colour_of(n));
-      if (!dir) show(L.dot[i], false);
+      if (!dir || !animate_) show(L.dot[i], false);
     }
+    if (!dir || !animate_) dots_on_[n] = false;
   };
   auto node_texts = [&](int n, bool ok, float shown) {
     NodeUI &N = node_[n];
@@ -753,21 +775,34 @@ void PowerTile::paint() {
   {
     NodeUI &N = node_[N_HOME];
     node_texts(N_HOME, true, home_w_);
-    set_arc_color(N.arc[0], swatch_color(N.swatch));
+    lv_color_t ring = swatch_color(N.swatch);  // the home's own colour while nothing flows into it
     float from = 270;
     for (int i = 0; i < 3; ++i) {
       const int src = i == 0 ? N_GRID : i == 1 ? N_SOLAR : N_BATT;
-      lv_obj_t *a = N.arc[i + 1];
+      lv_obj_t *a = N.arc[i];
       const float span = share_[i] * 360.0f;
       if (span < 1.0f || !node_[src].used) {
-        show(a, false);
+        if (arc_on_[i]) show(a, false);
+        arc_on_[i] = false;
+        continue;
+      }
+      if (span >= 359.0f) {  // one source gives all of it: the whole ring has its colour
+        ring = swatch_color(node_[src].swatch);
+        if (arc_on_[i]) show(a, false);
+        arc_on_[i] = false;
         continue;
       }
       set_arc_color(a, swatch_color(node_[src].swatch));
-      set_arc_span(a, from, span);
-      show(a, true);
+      if (!arc_on_[i] || fabsf(arc_from_[i] - from) >= 1.0f || fabsf(arc_span_[i] - span) >= 1.0f) {
+        set_arc_span(a, from, span);
+        arc_from_[i] = from;
+        arc_span_[i] = span;
+      }
+      if (!arc_on_[i]) show(a, true);
+      arc_on_[i] = true;
       from += span;
     }
+    set_border(N.ring, ring);
   }
   for (int s = 0; s < nshown_; ++s) {
     const int n = N_DEV0 + s;
@@ -782,28 +817,32 @@ void PowerTile::paint() {
 // animate(): called every 250 ms by the plugin. Each dot is one position on its line.
 // ---------------------------------------------------------------------------------------------------
 void PowerTile::animate(uint32_t now_ms) {
-  if (!built_) return;
+  if (!built_ || !animate_) return;
   const float phase = static_cast<float>(now_ms % LOOP_MS) / static_cast<float>(LOOP_MS);
   for (int n = 0; n < NODES; ++n) {
     Link &L = link_[n];
     if (!L.used) continue;
     if (L.dir == 0) {
       if (dots_on_[n]) {
-        for (int i = 0; i < 2; ++i) show(L.dot[i], false);
+        for (int i = 0; i < DOTS; ++i) show(L.dot[i], false);
         dots_on_[n] = false;
       }
       continue;
     }
-    for (int i = 0; i < 2; ++i) {
-      float t = phase + 0.5f * static_cast<float>(i);
-      t -= floorf(t);
-      if (L.dir < 0) t = 1.0f - t;
-      float x, y;
-      point_at(L, t * L.total, x, y);
-      lv_obj_set_pos(L.dot[i], static_cast<int>(lroundf(x)) - dot_ / 2, static_cast<int>(lroundf(y)) - dot_ / 2);
-      show(L.dot[i], true);
+    float t = phase;
+    if (L.dir < 0) t = 1.0f - t;
+    float x, y;
+    point_at(L, t * L.total, x, y);
+    const int px = static_cast<int>(lroundf(x)) - dot_ / 2, py = static_cast<int>(lroundf(y)) - dot_ / 2;
+    if (!dots_on_[n] || px != last_x_[n] || py != last_y_[n]) {
+      lv_obj_set_pos(L.dot[0], px, py);
+      last_x_[n] = px;
+      last_y_[n] = py;
     }
-    dots_on_[n] = true;
+    if (!dots_on_[n]) {
+      show(L.dot[0], true);
+      dots_on_[n] = true;
+    }
   }
 }
 
