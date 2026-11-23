@@ -57,6 +57,9 @@ jobs:
           key: bench-${{ runner.os }}-${{ github.run_id }}
           restore-keys: bench-${{ runner.os }}-
 
+      - name: A fresh bench Python (the cache keeps its packages)
+        run: rm -rf tessera-plugins/tools/.cache/preview-venv
+
       - name: Build the screens and audit what it draws
         env:
           BOARDS: ${{ inputs.boards }}
