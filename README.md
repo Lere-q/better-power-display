@@ -27,22 +27,24 @@ Updates are published as GitHub releases, so a new version shows up on the scree
 2. In Layout, place the **Power flow** tile from the library's Plugins group. A larger tile gives larger circles and room
    for more devices.
 3. In the inspector, choose your sensors. Everything is optional; only what you choose is drawn:
-   - **Grid power**: positive is power taken from the grid. If your sensor is the other way round, turn on *Grid sensor:
-     positive is export*.
+   - **Grid power**: positive is power taken from the grid, negative is power fed in.
    - **Solar power**.
-   - **Battery power** and **Battery level**: positive is power the battery gives. If your sensor is positive while it
-     charges, turn on *Battery sensor: positive is charging*.
-   - **Home power** (optional): without it the home's power is grid + solar + battery.
+   - **Battery power (out)**, optionally **Battery power (in)**, and **Battery level**. With one signed sensor choose it
+     only as *out*: positive is discharging. With two sensors each only counts up from 0.
    - **Device 1 to 8**: power sensors of single devices. They leave the home.
-4. Under **Colours** pick the colour of each source. *Device colours* takes colours in the order of the devices.
+   - **Flip the sign of**: for a grid sensor that is positive while you feed in, or a single battery sensor that is
+     positive while it charges.
+4. Under **Colours** pick the colour of grid, solar and battery. *Device colours* takes colours in the order of the devices.
+5. Under **Names** type your own names. Without one, a device shows the name of its sensor.
 
 ## Good to know
 
 - Sensors in W, kW and MW all work; the tile converts them.
-- A line is idle (grey, no dots) while the power is below *Flow starts at* (10 W by default).
+- A lane is idle (dim, no dots) while the power is below *Flow starts at* (10 W by default).
 - The ring of the home shows where its power comes from, in the colours of grid, solar and battery.
 - With more devices chosen than the tile has room for, it shows the ones that use the most power right now.
-- The dots move four times a second; *Moving dots* under **More** turns them off if the screen feels slow.
+- The dots flow smoothly and faster with more power. They stop while the screen is dark, and *Moving dots* turns them off.
+- The home is always worked out from its sources (grid + solar + battery).
 
 ## Privacy
 
@@ -60,4 +62,3 @@ beside this one.
 Every push runs the check and the build on GitHub. A push to `main` that raises `version` in `tessera-plugin.yaml`
 publishes a GitHub release with the lines of that version from `CHANGELOG.md`, and Tessera offers it to the screens as
 an update.
-

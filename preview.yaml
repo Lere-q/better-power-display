@@ -1,11 +1,12 @@
-# What tools/preview.py shows (docs/PREVIEW.md of tessera-plugins): the tile with a full house, a small one and an empty one.
+# What tools/preview.py shows (docs/PREVIEW.md of tessera-plugins): a full house, a feed-in case and a small tile.
 tiles:
   - tile: flow
     name: Full house
     options:
       grid: sensor.grid_power
       solar: sensor.solar_power
-      battery: sensor.battery_power
+      battery: sensor.battery_out
+      battery_in: sensor.battery_in
       battery_level: sensor.battery_level
       device_1: sensor.pc_power
       device_2: sensor.heat_pump_power
@@ -13,15 +14,12 @@ tiles:
       device_4: sensor.fridge_power
       device_5: sensor.washer_power
       device_6: sensor.tv_power
+      device_names: [PC, Pump, EV, Fridge, Washer, TV]
     sizes: [2x1, 3x2, 4x2, 4x3, 6x3]
   - tile: flow
-    name: Grid and solar
-    options: { grid: sensor.grid_power, solar: sensor.solar_power, device_1: sensor.pc_power }
-    sizes: [2x1, 2x2, 3x2]
-  - tile: flow
-    name: Export
-    options: { grid: sensor.grid_export, solar: sensor.solar_power, battery: sensor.battery_power, battery_level: sensor.battery_level, invert_battery: true }
-    sizes: [3x2]
+    name: Feeding in
+    options: { grid: sensor.grid_export, solar: sensor.solar_big, battery: sensor.battery_out, battery_in: sensor.battery_in, battery_level: sensor.battery_level, device_1: sensor.pc_power }
+    sizes: [3x2, 4x3]
   - tile: flow
     name: Nothing chosen
     sizes: [2x1]
@@ -30,9 +28,11 @@ states:
   sensor.grid_power: { state: "1.35", attributes: { unit_of_measurement: kW, device_class: power } }
   sensor.grid_export: { state: "-640", attributes: { unit_of_measurement: W, device_class: power } }
   sensor.solar_power: { state: "238", attributes: { unit_of_measurement: W, device_class: power } }
-  sensor.battery_power: { state: "-187", attributes: { unit_of_measurement: W, device_class: power } }
-  sensor.battery_level: { state: "86", attributes: { unit_of_measurement: "%", device_class: battery } }
-  sensor.pc_power: { state: "199", attributes: { unit_of_measurement: W, device_class: power, friendly_name: PC } }
+  sensor.solar_big: { state: "1500", attributes: { unit_of_measurement: W, device_class: power } }
+  sensor.battery_out: { state: "0", attributes: { unit_of_measurement: W, device_class: power } }
+  sensor.battery_in: { state: "187", attributes: { unit_of_measurement: W, device_class: power } }
+  sensor.battery_level: { state: "25", attributes: { unit_of_measurement: "%", device_class: battery } }
+  sensor.pc_power: { state: "260", attributes: { unit_of_measurement: W, device_class: power, friendly_name: PC } }
   sensor.heat_pump_power: { state: "1", attributes: { unit_of_measurement: W, device_class: power } }
   sensor.ev_charger_power: { state: "0", attributes: { unit_of_measurement: W, device_class: power } }
   sensor.fridge_power: { state: "84", attributes: { unit_of_measurement: W, device_class: power } }
